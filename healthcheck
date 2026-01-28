@@ -1,0 +1,48 @@
+import os
+import asyncio
+from aiohttp import web
+
+# ... твій існуючий код бота вище (aiogram, хендлери, БД і тд)
+
+async def healthcheck_server() -> None:
+    """
+    Render (Web Service) вимагає, щоб процес слухав порт.
+    Цей сервер просто відповідає 200 OK, щоб деплой не падав.
+    """
+    port = int(os.getenv("PORT", "10000"))
+
+    app = web.Application()
+
+    async def ok(request):
+        return web.Response(text="OK")
+
+    app.router.add_get("/", ok)
+    app.router.add_get("/health", ok)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=port)
+    await site.start()
+
+    # щоб таск не завершувався
+    while True:
+        await asyncio.sleep(3600)
+
+async def main():
+    # якщо в тебе є init_db() — залиш
+    try:
+        await init_db()
+    except NameError:
+        pass
+
+    # ⚠️ тут має бути твій запуск aiogram
+    # наприклад (якщо в тебе так):
+    # await dp.start_polling(bot)
+
+    await asyncio.gather(
+        healthcheck_server(),
+        dp.start_polling(bot),
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
