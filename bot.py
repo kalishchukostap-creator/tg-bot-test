@@ -233,3 +233,43 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+import os
+import asyncio
+from aiohttp import web
+
+# -------------------------
+# HEALTHCHECK ДЛЯ RENDER
+# -------------------------
+async def healthcheck_server():
+    port = int(os.getenv("PORT", "10000"))
+
+    app = web.Application()
+
+    async def ok(request):
+        return web.Response(text="OK")
+
+    app.router.add_get("/", ok)
+    app.router.add_get("/health", ok)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    while True:
+        await asyncio.sleep(3600)
+
+
+# -------------------------
+# MAIN
+# -------------------------
+async def main():
+    await init_db()
+
+    await asyncio.gather(
+        dp.start_polling(bot),
+        healthcheck_server(),
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
